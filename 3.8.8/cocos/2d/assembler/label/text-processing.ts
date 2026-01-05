@@ -526,12 +526,16 @@ export class TextProcessing {
         this._drawTextEffect(tempPos, lineHeight, style, layout, outputLayoutData);
         const { parsedString } = outputLayoutData;
         // draw text and outline
+        const offset = TextProcessing._OFFSET_TO_HIDE_TEXT_ANYTHING_BUT_SHADOW;
         for (let i = 0; i < parsedString.length; ++i) {
             drawTextPosY = tempPos.y + i * lineHeight;
             //draw shadow
             if (style.hasShadow) {
                 this._setupShadow(style);
-                context.fillText(parsedString[i], drawTextPosX, drawTextPosY);
+                context.fillText(parsedString[i], drawTextPosX - offset, drawTextPosY - offset);
+                if (style.isOutlined) {
+                    context.strokeText(parsedString[i], drawTextPosX - offset, drawTextPosY - offset);
+                }
             }
             //draw outline
             if (style.isOutlined) {
@@ -539,9 +543,7 @@ export class TextProcessing {
                 context.strokeText(parsedString[i], drawTextPosX, drawTextPosY);
             }
             //draw text
-            if (!style.hasShadow || style.isOutlined) {
-                context.fillText(parsedString[i], drawTextPosX, drawTextPosY);
-            }
+            context.fillText(parsedString[i], drawTextPosX, drawTextPosY);
         }
 
         if (style.hasShadow) {
@@ -609,7 +611,7 @@ export class TextProcessing {
         const measureText = this._measureText(this._context!, style.fontDesc);
         let drawTextPosX = 0;
         let drawTextPosY = 0;
-
+        const offset = TextProcessing._OFFSET_TO_HIDE_TEXT_ANYTHING_BUT_SHADOW;
         // draw shadow and (outline or text)
         for (let i = 0; i < parsedString.length; ++i) {
             drawTextPosX = startPosition.x;
@@ -619,7 +621,10 @@ export class TextProcessing {
                 //draw shadow
                 if (style.hasShadow) {
                     this._setupShadow(style);
-                    context.fillText(parsedString[i], drawTextPosX, drawTextPosY);
+                    context.fillText(parsedString[i], drawTextPosX - offset, drawTextPosY - offset);
+                    if (style.isOutlined) {
+                        context.strokeText(parsedString[i], drawTextPosX - offset, drawTextPosY - offset);
+                    }
                 }
                 // draw outline
                 if (style.isOutlined) {
@@ -627,10 +632,7 @@ export class TextProcessing {
                     context.strokeText(parsedString[i], drawTextPosX, drawTextPosY);
                 }
 
-                //draw text
-                if (!style.hasShadow || style.isOutlined) {
-                    context.fillText(parsedString[i], drawTextPosX, drawTextPosY);
-                }
+                context.fillText(parsedString[i], drawTextPosX, drawTextPosY);
             }
 
             // draw underline
@@ -664,13 +666,19 @@ export class TextProcessing {
         context.lineWidth = style.outlineWidth * 2 * this._fontScale;
     }
 
-    private _setupShadow (style: TextStyle): void {
+    private static _OFFSET_TO_HIDE_TEXT_ANYTHING_BUT_SHADOW = 99999 as const;
+
+    private _setupShadow(style: TextStyle): void {
+        const hasOutline = style.isOutlined && style.outlineWidth > 0;
+        const offset = TextProcessing._OFFSET_TO_HIDE_TEXT_ANYTHING_BUT_SHADOW;
+        // Setup
         const context = this._context!;
         const fontScale = this._fontScale;
         context.shadowColor = `rgba(${style.shadowColor.r}, ${style.shadowColor.g}, ${style.shadowColor.b}, ${style.shadowColor.a / 255})`;
         context.shadowBlur = style.shadowBlur * fontScale;
-        context.shadowOffsetX = style.shadowOffsetX * fontScale;
-        context.shadowOffsetY = -style.shadowOffsetY * fontScale;
+        context.shadowOffsetX = offset + style.shadowOffsetX * fontScale;
+        context.shadowOffsetY = offset - style.shadowOffsetY * fontScale;
+        if (hasOutline) context.lineWidth = style.outlineWidth * 2 * this._fontScale;
     }
 
     // -------------------- Render Processing Part --------------------------
